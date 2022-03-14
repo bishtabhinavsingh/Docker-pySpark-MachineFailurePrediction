@@ -1,0 +1,77 @@
+# BUG: Fails to mount windows volume (probably due to spark operator, because works with submit)
+
+# Run on laptop (windows)
+#
+# hostPath mount on laptop only works without spark account (because of permissions?)
+# NFS doesn't work (out of the box) on windows, so use hostPath
+#
+# Install Helm: https://dzlab.github.io/ml/2020/07/14/spark-kubernetes/
+# Install spark operator: https://github.com/GoogleCloudPlatform/spark-on-k8s-operator
+# helm repo add incubator https://charts.helm.sh/incubator
+#
+# IMPORTANT: --set enableWebhook=true below...
+# helm install my-release spark-operator/spark-operator --namespace spark-operator --create-namespace --set enableWebhook=true
+#
+# Running
+#  kubectl apply -f k8operator_win.yaml
+#
+# Potential reasons for failure to create a container:
+# Insufficient cores, missing or incorrect mount point for volume
+# coreLimit doesn't work without webhook and other configuration:
+#  https://github.com/GoogleCloudPlatform/spark-on-k8s-operator/blob/master/docs/quick-start-guide.md
+
+apiVersion: "sparkoperator.k8s.io/v1beta2"
+kind: SparkApplication
+metadata:
+  name: Proj_8795_G5-job
+spec:
+  sparkConf:
+    # Because some UDFs can be slow, increase heartbeat timeout
+    "spark.executor.heartbeatInterval": "20s"
+    "spark.shuffle.io.retryWait": "60s"
+    "spark.sql.shuffle.partitions": "1000"
+  type: Python
+  pythonVersion: "3"
+  mode: cluster
+  image: "bishtabhinav/proj_8795_g5"
+  imagePullPolicy: IfNotPresent
+  mainApplicationFile: local:///opt/spark/work-dir/run_env.py
+#  mainApplicationFile: local:///opt/spark/work-dir/sleep.py
+  arguments:
+    - "--master=k8s://https://localhost:6443"
+    - "--py_files=src/Proj_8795_G5.zip"
+  sparkVersion: "3.0.1"
+  restartPolicy:
+    type: Never
+  volumes:
+    - name: Proj_8795_G5-src-directory
+      hostPath:
+        path: /Users/abi/Documents/GSU current/8795 - BD Infra/Proj_8795_G5
+        type: Directory
+        readOnly: true
+  driver:
+    cores: 1
+    memory: 2g
+    labels:
+      version: 3.0.1
+      app: Proj_8795_G5
+    envVars:
+      PYSPARK_APP_MODULE: Proj_8795_G5
+      PYSPARK_MAJOR_PYTHON_VERSION: 3
+      PYTHONPATH: /opt/spark/work-dir/src/Proj_8795_G5.zip
+    volumeMounts:
+      - name: Proj_8795_G5-src-directory
+        mountPath: /opt/spark/work-dir/src
+  executor:
+    cores: 3
+    instances: 1
+    memory: 6g
+    labels:
+      version: 3.0.1
+      app: Proj_8795_G5
+    envVars:
+      PYSPARK_APP_MODULE: Proj_8795_G5
+      PYTHONPATH: /opt/spark/work-dir/src/Proj_8795_G5.zip
+    volumeMounts:
+      - name: Proj_8795_G5-src-directory
+        mountPath: /opt/spark/work-dir/src

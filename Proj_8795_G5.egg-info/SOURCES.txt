@@ -1,0 +1,9 @@
+setup.py
+Proj_8795_G5/__init__.py
+Proj_8795_G5/__main__.py
+Proj_8795_G5/spark.py
+Proj_8795_G5/utils.py
+Proj_8795_G5.egg-info/PKG-INFO
+Proj_8795_G5.egg-info/SOURCES.txt
+Proj_8795_G5.egg-info/dependency_links.txt
+Proj_8795_G5.egg-info/top_level.txt
